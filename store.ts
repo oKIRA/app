@@ -57,6 +57,7 @@ interface ChampionshipState {
   knockoutMatches: KnockoutMatch[];
   mode: 'SIMPLE' | 'REPECHAGE';
   status: 'SETUP' | 'GROUPS' | 'PLAY_IN' | 'KNOCKOUT' | 'FINISHED';
+  lastSavedAt?: string;
   addTeam: (team: string) => void;
   removeTeam: (index: number) => void;
   editTeam: (index: number, newName: string) => void;
@@ -65,6 +66,7 @@ interface ChampionshipState {
   updateMatchResult: (matchId: string, homeGoals: number, awayGoals: number) => void;
   updatePlayInResult: (matchId: string, homeGoals: number, awayGoals: number, penalties?: { home: number; away: number }) => void;
   updateKnockoutResult: (matchId: string, homeGoals: number, awayGoals: number, penalties?: { home: number; away: number }) => void;
+  saveChampionship: () => void;
   resetChampionship: () => void;
   newChampionship: () => void;
 }
@@ -293,19 +295,16 @@ const generatePlayIn = (groups: Group[]): PlayInMatch[] => {
 
 const generateKnockoutWithPlayIn = (groups: Group[], playInMatches: PlayInMatch[]): KnockoutMatch[] => {
   // 4 primeiros lugares + 4 vencedores da repescagem = 8 times
-  const firstPlaces = groups.map(group => group.standings[0]?.team).filter(Boolean);
-  const playInWinners = playInMatches.map(match => match.winner).filter(Boolean);
+  const firstPlaces = groups.map(group => group.standings[0]?.team || '');
+  const playInWinners = playInMatches.map(match => match.winner || '');
 
-  const qualifiedTeams = [...firstPlaces, ...playInWinners];
+  if (firstPlaces.length !== 4 || playInWinners.length !== 4) return [];
 
-  if (qualifiedTeams.length !== 8) return [];
-
-  // Quartas: 1º A vs vencedor (2º B vs 3º A), etc.
   const pairings = [
-    { home: qualifiedTeams[0] || '', away: playInMatches.find(m => m.home === groups[1].standings[1]?.team && m.away === groups[0].standings[2]?.team)?.winner || '' },
-    { home: qualifiedTeams[1] || '', away: playInMatches.find(m => m.home === groups[2].standings[1]?.team && m.away === groups[1].standings[2]?.team)?.winner || '' },
-    { home: qualifiedTeams[2] || '', away: playInMatches.find(m => m.home === groups[3].standings[1]?.team && m.away === groups[2].standings[2]?.team)?.winner || '' },
-    { home: qualifiedTeams[3] || '', away: playInMatches.find(m => m.home === groups[0].standings[1]?.team && m.away === groups[3].standings[2]?.team)?.winner || '' },
+    { home: firstPlaces[0], away: playInWinners[1] },
+    { home: firstPlaces[1], away: playInWinners[2] },
+    { home: firstPlaces[2], away: playInWinners[3] },
+    { home: firstPlaces[3], away: playInWinners[0] },
   ];
 
   const matches: KnockoutMatch[] = [];
@@ -499,6 +498,25 @@ export const useChampionshipStore = create<ChampionshipState>()(
         const newStatus = finalMatch?.winner ? 'FINISHED' : state.status;
 
         return { knockoutMatches: newMatches, status: newStatus };
+      }),
+
+      saveChampionship: () => set((state) => {
+        const savedAt = new Date().toISOString();
+        const payload = {
+          teams: state.teams,
+          groups: state.groups,
+          playInMatches: state.playInMatches,
+          knockoutMatches: state.knockoutMatches,
+          mode: state.mode,
+          status: state.status,
+          lastSavedAt: savedAt,
+        };
+
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('championship-storage', JSON.stringify(payload));
+        }
+
+        return { lastSavedAt: savedAt };
       }),
 
       resetChampionship: () => set((state) => ({

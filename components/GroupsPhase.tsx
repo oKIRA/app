@@ -3,7 +3,7 @@
 import { useChampionshipStore } from '../store';
 
 export default function GroupsPhase() {
-  const { groups, updateMatchResult, mode, status } = useChampionshipStore();
+  const { groups, updateMatchResult, mode, status, saveChampionship, lastSavedAt } = useChampionshipStore();
 
   const handleResultChange = (matchId: string, homeGoals: string, awayGoals: string) => {
     const hGoals = parseInt(homeGoals) || 0;
@@ -18,12 +18,12 @@ export default function GroupsPhase() {
 
   const getStandingClass = (index: number, totalTeams: number, mode: 'SIMPLE' | 'REPECHAGE') => {
     if (mode === 'REPECHAGE') {
-      if (index === 0) return 'bg-green-100 font-semibold'; // 1º lugar - classificado direto
-      if (index === 1 || index === 2) return 'bg-yellow-100 font-semibold'; // 2º e 3º - repescagem
-      return 'bg-red-100'; // restantes - eliminados
+      if (index === 0) return 'bg-green-900/40 text-green-200 font-semibold border-l-4 border-green-500'; // 1º lugar - classificado direto
+      if (index === 1 || index === 2) return 'bg-yellow-900/40 text-yellow-200 font-semibold border-l-4 border-yellow-500'; // 2º e 3º - repescagem
+      return 'bg-red-900/40 text-red-200 border-l-4 border-red-500'; // restantes - eliminados
     } else {
-      if (index < 2) return 'bg-green-100 font-semibold'; // 2 primeiros - classificados
-      return 'bg-red-100'; // restantes - eliminados
+      if (index < 2) return 'bg-green-900/40 text-green-200 font-semibold border-l-4 border-green-500'; // 2 primeiros - classificados
+      return 'bg-red-900/40 text-red-200 border-l-4 border-red-500'; // restantes - eliminados
     }
   };
 
@@ -31,16 +31,31 @@ export default function GroupsPhase() {
 
   return (
     <div className="px-1">
+      <div className="flex flex-col gap-3 md:flex-row justify-between mb-6">
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={saveChampionship}
+            className="bg-[#d8af43] text-black px-4 py-2 rounded hover:bg-[#c29f3d]"
+          >
+            Salvar Resultado
+          </button>
+        </div>
+        {lastSavedAt && (
+          <div className="text-sm text-white/70 self-end">
+            Último salvamento: {new Date(lastSavedAt).toLocaleString('pt-BR')}
+          </div>
+        )}
+      </div>
       {/* Seção de Jogos */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-3 text-gray-800">Jogos</h2>
+        <h2 className="text-2xl font-bold mb-3 text-[#d8af43]">Jogos</h2>
         <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           {groups.map((group) => (
-            <div key={`games-${group.name}`} className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="text-lg font-bold mb-4 text-center bg-gray-100 py-2 rounded">{group.name}</h3>
+            <div key={`games-${group.name}`} className="libertadores-card p-6 rounded-lg shadow-md">
+              <h3 className="text-lg font-bold mb-4 text-center bg-black/30 py-2 rounded text-[#d8af43]">{group.name}</h3>
               <div className="space-y-3">
                 {group.matches.map((match) => (
-                  <div key={match.id} className="bg-gray-50 p-3 rounded border">
+                  <div key={match.id} className="bg-white/5 p-3 rounded border border-white/10">
                     <div className="flex items-center justify-between">
                       <span className="flex-1 font-medium text-sm truncate pr-2" title={match.home}>
                         {match.home}
@@ -52,7 +67,7 @@ export default function GroupsPhase() {
                           const numericValue = handleNumericInput(e.target.value);
                           handleResultChange(match.id, numericValue, match.awayGoals?.toString() ?? '');
                         }}
-                        className="w-12 text-center border rounded text-sm font-bold"
+                        className="w-12 text-center border border-white/10 rounded bg-[#0f0f0f] text-white text-sm font-bold"
                         placeholder="0"
                         maxLength={2}
                         disabled={!isEditable}
@@ -65,7 +80,7 @@ export default function GroupsPhase() {
                           const numericValue = handleNumericInput(e.target.value);
                           handleResultChange(match.id, match.homeGoals?.toString() ?? '', numericValue);
                         }}
-                        className="w-12 text-center border rounded text-sm font-bold"
+                        className="w-12 text-center border border-white/10 rounded bg-[#0f0f0f] text-white text-sm font-bold"
                         placeholder="0"
                         maxLength={2}
                         disabled={!isEditable}
@@ -84,31 +99,31 @@ export default function GroupsPhase() {
 
       {/* Seção de Classificação */}
       <div>
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">Classificação</h2>
+        <h2 className="text-2xl font-bold mb-4 text-[#d8af43]">Classificação</h2>
         <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
           {groups.map((group) => (
-            <div key={`standings-${group.name}`} className="bg-white p-4 rounded-lg shadow-md">
-              <h3 className="text-lg font-bold mb-4 text-center bg-gray-100 py-2 rounded">{group.name}</h3>
+            <div key={`standings-${group.name}`} className="libertadores-card p-4 rounded-lg shadow-md">
+              <h3 className="text-lg font-bold mb-4 text-center bg-black/30 py-2 rounded text-[#d8af43]">{group.name}</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-base">
                   <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="text-left py-3 px-2">Time</th>
-                      <th className="text-center py-3 px-1">P</th>
-                      <th className="text-center py-3 px-1">V</th>
-                      <th className="text-center py-3 px-1">E</th>
-                      <th className="text-center py-3 px-1">D</th>
-                      <th className="text-center py-3 px-1">GP</th>
-                      <th className="text-center py-3 px-1">GC</th>
-                      <th className="text-center py-3 px-1">SG</th>
-                      <th className="text-center py-3 px-1">Pts</th>
+                    <tr className="border-b border-[#d8af43]/30 bg-black/40">
+                      <th className="text-left py-3 px-2 text-[#d8af43] font-bold">Time</th>
+                      <th className="text-center py-3 px-1 text-[#d8af43] font-bold">P</th>
+                      <th className="text-center py-3 px-1 text-[#d8af43] font-bold">V</th>
+                      <th className="text-center py-3 px-1 text-[#d8af43] font-bold">E</th>
+                      <th className="text-center py-3 px-1 text-[#d8af43] font-bold">D</th>
+                      <th className="text-center py-3 px-1 text-[#d8af43] font-bold">GP</th>
+                      <th className="text-center py-3 px-1 text-[#d8af43] font-bold">GC</th>
+                      <th className="text-center py-3 px-1 text-[#d8af43] font-bold">SG</th>
+                      <th className="text-center py-3 px-1 text-[#d8af43] font-bold">Pts</th>
                     </tr>
                   </thead>
                   <tbody>
                     {group.standings.map((standing, index) => (
                       <tr
                         key={standing.team}
-                        className={`border-b ${getStandingClass(index, group.teams.length, mode)}`}
+                        className={`border-b border-white/10 ${getStandingClass(index, group.teams.length, mode)}`}
                       >
                         <td className="py-3 px-2 text-sm font-medium truncate max-w-24" title={standing.team}>
                           {standing.team}

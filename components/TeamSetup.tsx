@@ -52,8 +52,8 @@ export default function TeamSetup() {
   const canAddTeams = getTeamCount() >= 4;
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-4">Cadastro de Times</h2>
+    <div className="libertadores-card p-6 rounded-lg shadow-md">
+      <h2 className="text-2xl font-bold mb-4 text-[#d8af43]">Cadastro de Times</h2>
 
       <div className="mb-4">
         <textarea
@@ -66,11 +66,11 @@ Palmeiras
 São Paulo
 Corinthians
 Grêmio`}
-          className="border p-2 rounded w-full h-32 resize-none"
+          className="border border-[#d8af43]/30 p-2 rounded w-full h-32 resize-none bg-[#0f0f0f] text-white placeholder-gray-600"
           rows={6}
         />
         <div className="mt-2 flex items-center justify-between">
-          <span className={`text-sm ${getTeamCount() >= 4 ? 'text-green-600' : 'text-red-600'}`}>
+          <span className={`text-sm ${getTeamCount() >= 4 ? 'text-green-400' : 'text-red-400'}`}>
             Times detectados: {getTeamCount()} (mínimo: 4)
           </span>
           <button
@@ -78,8 +78,8 @@ Grêmio`}
             disabled={!canAddTeams}
             className={`px-4 py-2 rounded ${
               canAddTeams
-                ? 'bg-green-500 text-white hover:bg-green-600'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                ? 'bg-[#d8af43] text-black hover:bg-[#c29f3d] font-semibold'
+                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
             }`}
           >
             Adicionar Times
@@ -87,44 +87,44 @@ Grêmio`}
         </div>
       </div>
 
-      <ul className="mb-4">
+      <ul className="mb-4 border border-[#d8af43]/20 rounded">
         {teams.map((team, index) => (
-          <li key={index} className="flex items-center justify-between p-2 border-b">
+          <li key={index} className="flex items-center justify-between p-3 border-b border-[#d8af43]/20 last:border-b-0 bg-black/20">
             {editingIndex === index ? (
-              <div className="flex items-center w-full">
+              <div className="flex items-center w-full gap-2">
                 <input
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="border p-1 rounded mr-2 flex-1"
+                  className="border border-[#d8af43]/30 p-2 rounded mr-2 flex-1 bg-[#0f0f0f] text-white"
                   onKeyPress={(e) => e.key === 'Enter' && handleSaveEdit()}
                 />
                 <button
                   onClick={handleSaveEdit}
-                  className="bg-green-500 text-white px-2 py-1 rounded mr-1"
+                  className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded"
                 >
                   Salvar
                 </button>
                 <button
                   onClick={handleCancelEdit}
-                  className="bg-gray-500 text-white px-2 py-1 rounded"
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded"
                 >
                   Cancelar
                 </button>
               </div>
             ) : (
               <>
-                <span>{team}</span>
-                <div>
+                <span className="text-white">{team}</span>
+                <div className="flex gap-2">
                   <button
                     onClick={() => handleEditTeam(index)}
-                    className="bg-yellow-500 text-white px-2 py-1 rounded mr-1"
+                    className="bg-[#d8af43] hover:bg-[#c29f3d] text-black px-3 py-1 rounded font-semibold"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => removeTeam(index)}
-                    className="bg-red-500 text-white px-2 py-1 rounded"
+                    className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
                   >
                     Remover
                   </button>
@@ -138,7 +138,7 @@ Grêmio`}
       {teams.length >= 4 && (
         <button
           onClick={generateChampionship}
-          className="bg-green-500 text-white px-4 py-2 rounded w-full"
+          className="bg-[#d8af43] hover:bg-[#c29f3d] text-black px-4 py-3 rounded w-full font-bold text-lg"
         >
           Gerar Campeonato
         </button>
