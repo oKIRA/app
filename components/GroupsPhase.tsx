@@ -3,7 +3,7 @@
 import { useChampionshipStore } from '../store';
 
 export default function GroupsPhase() {
-  const { groups, updateMatchResult, resetChampionship, newChampionship } = useChampionshipStore();
+  const { groups, updateMatchResult, mode, status } = useChampionshipStore();
 
   const handleResultChange = (matchId: string, homeGoals: string, awayGoals: string) => {
     const hGoals = parseInt(homeGoals) || 0;
@@ -16,23 +16,21 @@ export default function GroupsPhase() {
     return value.replace(/\D/g, '');
   };
 
+  const getStandingClass = (index: number, totalTeams: number, mode: 'SIMPLE' | 'REPECHAGE') => {
+    if (mode === 'REPECHAGE') {
+      if (index === 0) return 'bg-green-100 font-semibold'; // 1º lugar - classificado direto
+      if (index === 1 || index === 2) return 'bg-yellow-100 font-semibold'; // 2º e 3º - repescagem
+      return 'bg-red-100'; // restantes - eliminados
+    } else {
+      if (index < 2) return 'bg-green-100 font-semibold'; // 2 primeiros - classificados
+      return 'bg-red-100'; // restantes - eliminados
+    }
+  };
+
+  const isEditable = status === 'GROUPS';
+
   return (
     <div className="px-1">
-      <div className="flex justify-between mb-4">
-        <button
-          onClick={newChampionship}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-        >
-          Novo Campeonato
-        </button>
-        <button
-          onClick={resetChampionship}
-          className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
-        >
-          Resetar Campeonato
-        </button>
-      </div>
-
       {/* Seção de Jogos */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold mb-3 text-gray-800">Jogos</h2>
@@ -57,6 +55,7 @@ export default function GroupsPhase() {
                         className="w-12 text-center border rounded text-sm font-bold"
                         placeholder="0"
                         maxLength={2}
+                        disabled={!isEditable}
                       />
                       <span className="mx-2 text-gray-600 font-bold">vs</span>
                       <input
@@ -69,6 +68,7 @@ export default function GroupsPhase() {
                         className="w-12 text-center border rounded text-sm font-bold"
                         placeholder="0"
                         maxLength={2}
+                        disabled={!isEditable}
                       />
                       <span className="flex-1 text-right font-medium text-sm truncate pl-2" title={match.away}>
                         {match.away}
@@ -108,13 +108,7 @@ export default function GroupsPhase() {
                     {group.standings.map((standing, index) => (
                       <tr
                         key={standing.team}
-                        className={`border-b ${
-                          index < 2
-                            ? 'bg-green-100 font-semibold'
-                            : index >= group.teams.length - 2
-                            ? 'bg-red-100'
-                            : ''
-                        }`}
+                        className={`border-b ${getStandingClass(index, group.teams.length, mode)}`}
                       >
                         <td className="py-3 px-2 text-sm font-medium truncate max-w-24" title={standing.team}>
                           {standing.team}

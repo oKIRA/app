@@ -40,16 +40,30 @@ interface KnockoutMatch {
   winner?: string;
 }
 
+interface PlayInMatch {
+  id: string;
+  home: string;
+  away: string;
+  homeGoals?: number;
+  awayGoals?: number;
+  penalties?: { home: number; away: number };
+  winner?: string;
+}
+
 interface ChampionshipState {
   teams: string[];
   groups: Group[];
+  playInMatches: PlayInMatch[];
   knockoutMatches: KnockoutMatch[];
-  currentPhase: 'setup' | 'groups' | 'knockout';
+  mode: 'SIMPLE' | 'REPECHAGE';
+  status: 'SETUP' | 'GROUPS' | 'PLAY_IN' | 'KNOCKOUT' | 'FINISHED';
   addTeam: (team: string) => void;
   removeTeam: (index: number) => void;
   editTeam: (index: number, newName: string) => void;
+  setMode: (mode: 'SIMPLE' | 'REPECHAGE') => void;
   generateChampionship: () => void;
   updateMatchResult: (matchId: string, homeGoals: number, awayGoals: number) => void;
+  updatePlayInResult: (matchId: string, homeGoals: number, awayGoals: number, penalties?: { home: number; away: number }) => void;
   updateKnockoutResult: (matchId: string, homeGoals: number, awayGoals: number, penalties?: { home: number; away: number }) => void;
   resetChampionship: () => void;
   newChampionship: () => void;
@@ -253,13 +267,89 @@ const generateKnockout = (groups: Group[]): KnockoutMatch[] => {
   return matches;
 };
 
+const generatePlayIn = (groups: Group[]): PlayInMatch[] => {
+  // Para 4 grupos: 2º A vs 3º B, 2º B vs 3º C, 2º C vs 3º D, 2º D vs 3º A
+  const matches: PlayInMatch[] = [];
+  const numGroups = groups.length;
+
+  for (let i = 0; i < numGroups; i++) {
+    const groupA = groups[i];
+    const groupB = groups[(i + 1) % numGroups];
+
+    const secondA = groupA.standings[1]?.team;
+    const thirdB = groupB.standings[2]?.team;
+
+    if (secondA && thirdB) {
+      matches.push({
+        id: `playin-${i}`,
+        home: secondA,
+        away: thirdB,
+      });
+    }
+  }
+
+  return matches;
+};
+
+const generateKnockoutWithPlayIn = (groups: Group[], playInMatches: PlayInMatch[]): KnockoutMatch[] => {
+  // 4 primeiros lugares + 4 vencedores da repescagem = 8 times
+  const firstPlaces = groups.map(group => group.standings[0]?.team).filter(Boolean);
+  const playInWinners = playInMatches.map(match => match.winner).filter(Boolean);
+
+  const qualifiedTeams = [...firstPlaces, ...playInWinners];
+
+  if (qualifiedTeams.length !== 8) return [];
+
+  // Quartas: 1º A vs vencedor (2º B vs 3º A), etc.
+  const pairings = [
+    { home: qualifiedTeams[0] || '', away: playInMatches.find(m => m.home === groups[1].standings[1]?.team && m.away === groups[0].standings[2]?.team)?.winner || '' },
+    { home: qualifiedTeams[1] || '', away: playInMatches.find(m => m.home === groups[2].standings[1]?.team && m.away === groups[1].standings[2]?.team)?.winner || '' },
+    { home: qualifiedTeams[2] || '', away: playInMatches.find(m => m.home === groups[3].standings[1]?.team && m.away === groups[2].standings[2]?.team)?.winner || '' },
+    { home: qualifiedTeams[3] || '', away: playInMatches.find(m => m.home === groups[0].standings[1]?.team && m.away === groups[3].standings[2]?.team)?.winner || '' },
+  ];
+
+  const matches: KnockoutMatch[] = [];
+
+  // Quartas
+  pairings.forEach((pairing, index) => {
+    matches.push({
+      id: `Quartas-${index}`,
+      round: 'Quartas',
+      home: pairing.home,
+      away: pairing.away,
+    });
+  });
+
+  // Semifinais (vazias)
+  for (let i = 0; i < 2; i++) {
+    matches.push({
+      id: `Semifinal-${i}`,
+      round: 'Semifinal',
+      home: '',
+      away: '',
+    });
+  }
+
+  // Final (vazia)
+  matches.push({
+    id: 'Final-0',
+    round: 'Final',
+    home: '',
+    away: '',
+  });
+
+  return matches;
+};
+
 export const useChampionshipStore = create<ChampionshipState>()(
   persist(
     (set, get) => ({
       teams: [],
       groups: [],
+      playInMatches: [],
       knockoutMatches: [],
-      currentPhase: 'setup',
+      mode: 'SIMPLE',
+      status: 'SETUP',
 
       addTeam: (team) => set((state) => ({ teams: [...state.teams, team] })),
 
@@ -271,11 +361,16 @@ export const useChampionshipStore = create<ChampionshipState>()(
         teams: state.teams.map((t, i) => i === index ? newName : t)
       })),
 
+      setMode: (mode) => set({ mode }),
+
       generateChampionship: () => {
-        const { teams } = get();
+        const { teams, mode } = get();
         if (teams.length < 4) return;
         const groups = generateGroups(teams);
-        set({ groups, currentPhase: 'groups' });
+        set({
+          groups,
+          status: 'GROUPS'
+        });
       },
 
       updateMatchResult: (matchId, homeGoals, awayGoals) => set((state) => {
@@ -297,12 +392,59 @@ export const useChampionshipStore = create<ChampionshipState>()(
           group.matches.every(match => match.homeGoals !== undefined && match.awayGoals !== undefined)
         );
 
-        if (allPlayed && state.currentPhase === 'groups') {
-          const knockoutMatches = generateKnockout(updatedGroups);
-          return { groups: updatedGroups, knockoutMatches, currentPhase: 'knockout' };
-        } else {
-          return { groups: updatedGroups };
+        let newStatus = state.status;
+        let newPlayInMatches = state.playInMatches;
+        let newKnockoutMatches = state.knockoutMatches;
+
+        if (allPlayed && state.status === 'GROUPS') {
+          if (state.mode === 'REPECHAGE') {
+            newPlayInMatches = generatePlayIn(updatedGroups);
+            newStatus = 'PLAY_IN';
+          } else {
+            newKnockoutMatches = generateKnockout(updatedGroups);
+            newStatus = 'KNOCKOUT';
+          }
         }
+
+        return {
+          groups: updatedGroups,
+          playInMatches: newPlayInMatches,
+          knockoutMatches: newKnockoutMatches,
+          status: newStatus
+        };
+      }),
+
+      updatePlayInResult: (matchId, homeGoals, awayGoals, penalties) => set((state) => {
+        const newPlayInMatches = state.playInMatches.map(match =>
+          match.id === matchId ? {
+            ...match,
+            homeGoals,
+            awayGoals,
+            penalties,
+            winner: homeGoals > awayGoals ? match.home :
+                    awayGoals > homeGoals ? match.away :
+                    penalties ? (penalties.home > penalties.away ? match.home : match.away) : undefined
+          } : match
+        );
+
+        // Check if all play-in matches are played
+        const allPlayed = newPlayInMatches.every(match =>
+          match.winner !== undefined
+        );
+
+        let newStatus = state.status;
+        let newKnockoutMatches = state.knockoutMatches;
+
+        if (allPlayed && state.status === 'PLAY_IN') {
+          newKnockoutMatches = generateKnockoutWithPlayIn(state.groups, newPlayInMatches);
+          newStatus = 'KNOCKOUT';
+        }
+
+        return {
+          playInMatches: newPlayInMatches,
+          knockoutMatches: newKnockoutMatches,
+          status: newStatus
+        };
       }),
 
       updateKnockoutResult: (matchId, homeGoals, awayGoals, penalties) => set((state) => {
@@ -330,17 +472,17 @@ export const useChampionshipStore = create<ChampionshipState>()(
 
           if (currentRoundIndex !== -1 && currentRoundIndex < allRounds.length - 1) {
             const nextRound = allRounds[currentRoundIndex + 1];
-            
+
             // Extrair número do match atual (ex: "Oitavas-2" -> 2)
             const currentMatchNum = parseInt(resultMatch.id.split('-')[1]);
-            
+
             // Calcular qual será o próximo match (2 matches viram 1)
             const nextMatchNum = Math.floor(currentMatchNum / 2);
             const isHomeTeam = currentMatchNum % 2 === 0;
-            
+
             // Encontrar o próximo match
             const nextMatchId = `${nextRound}-${nextMatchNum}`;
-            
+
             newMatches = newMatches.map(match =>
               match.id === nextMatchId
                 ? {
@@ -352,21 +494,35 @@ export const useChampionshipStore = create<ChampionshipState>()(
           }
         }
 
-        return { knockoutMatches: newMatches };
+        // Check if championship is finished
+        const finalMatch = newMatches.find(m => m.round === 'Final');
+        const newStatus = finalMatch?.winner ? 'FINISHED' : state.status;
+
+        return { knockoutMatches: newMatches, status: newStatus };
       }),
 
-      resetChampionship: () => set({
-        teams: [],
-        groups: [],
+      resetChampionship: () => set((state) => ({
+        groups: state.groups.map(group => ({
+          ...group,
+          matches: group.matches.map(match => ({
+            ...match,
+            homeGoals: undefined,
+            awayGoals: undefined,
+          })),
+          standings: calculateStandings([], group.teams),
+        })),
+        playInMatches: [],
         knockoutMatches: [],
-        currentPhase: 'setup'
-      }),
+        status: 'GROUPS'
+      })),
 
       newChampionship: () => set({
         teams: [],
         groups: [],
+        playInMatches: [],
         knockoutMatches: [],
-        currentPhase: 'setup'
+        mode: 'SIMPLE',
+        status: 'SETUP'
       }),
     }),
     {

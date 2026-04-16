@@ -3,7 +3,7 @@
 import { useChampionshipStore } from '../store';
 
 export default function KnockoutPhase() {
-  const { knockoutMatches, updateKnockoutResult, resetChampionship, newChampionship } = useChampionshipStore();
+  const { knockoutMatches, updateKnockoutResult, status } = useChampionshipStore();
 
   const handleResultChange = (matchId: string, homeGoals: string, awayGoals: string, penalties?: { home: string; away: string }) => {
     const hGoals = parseInt(homeGoals) || 0;
@@ -21,24 +21,10 @@ export default function KnockoutPhase() {
   };
 
   const rounds = [...new Set(knockoutMatches.map(m => m.round))];
+  const isEditable = status === 'KNOCKOUT' || status === 'FINISHED';
 
   return (
     <div>
-      <div className="flex justify-between mb-4">
-        <button
-          onClick={newChampionship}
-          className="bg-blue-500 text-white px-4 py-2 rounded"
-        >
-          Novo Campeonato
-        </button>
-        <button
-          onClick={resetChampionship}
-          className="bg-red-500 text-white px-4 py-2 rounded"
-        >
-          Resetar Campeonato
-        </button>
-      </div>
-
       <div className="space-y-4">
         {rounds.map((round) => (
           <div key={round} className="bg-white p-3 rounded-lg shadow-md">
@@ -55,8 +41,8 @@ export default function KnockoutPhase() {
                         const numericValue = handleNumericInput(e.target.value);
                         handleResultChange(match.id, numericValue, match.awayGoals?.toString() ?? '', match.penalties ? { home: match.penalties.home.toString(), away: match.penalties.away.toString() } : undefined);
                       }}
-                      disabled={!match.home || !match.away}
-                      className={`w-10 text-center border rounded mx-1 text-sm ${!match.home || !match.away ? 'bg-gray-200 cursor-not-allowed' : ''}`}
+                      disabled={!match.home || !match.away || !isEditable}
+                      className={`w-10 text-center border rounded mx-1 text-sm ${!match.home || !match.away || !isEditable ? 'bg-gray-200 cursor-not-allowed' : ''}`}
                       placeholder="0"
                       maxLength={2}
                     />
@@ -68,8 +54,8 @@ export default function KnockoutPhase() {
                         const numericValue = handleNumericInput(e.target.value);
                         handleResultChange(match.id, match.homeGoals?.toString() ?? '', numericValue, match.penalties ? { home: match.penalties.home.toString(), away: match.penalties.away.toString() } : undefined);
                       }}
-                      disabled={!match.home || !match.away}
-                      className={`w-10 text-center border rounded mx-1 text-sm ${!match.home || !match.away ? 'bg-gray-200 cursor-not-allowed' : ''}`}
+                      disabled={!match.home || !match.away || !isEditable}
+                      className={`w-10 text-center border rounded mx-1 text-sm ${!match.home || !match.away || !isEditable ? 'bg-gray-200 cursor-not-allowed' : ''}`}
                       placeholder="0"
                       maxLength={2}
                     />
@@ -86,7 +72,8 @@ export default function KnockoutPhase() {
                             const numericValue = handleNumericInput(e.target.value);
                             handleResultChange(match.id, match.homeGoals?.toString() ?? '', match.awayGoals?.toString() ?? '', { home: numericValue, away: match.penalties?.away.toString() ?? '' });
                           }}
-                          className="w-10 text-center border rounded mr-2 text-sm"
+                          disabled={!isEditable}
+                          className={`w-10 text-center border rounded mr-2 text-sm ${!isEditable ? 'bg-gray-200 cursor-not-allowed' : ''}`}
                           placeholder="0"
                           maxLength={2}
                         />
@@ -98,7 +85,8 @@ export default function KnockoutPhase() {
                             const numericValue = handleNumericInput(e.target.value);
                             handleResultChange(match.id, match.homeGoals?.toString() ?? '', match.awayGoals?.toString() ?? '', { home: match.penalties?.home.toString() ?? '', away: numericValue });
                           }}
-                          className="w-10 text-center border rounded ml-2 text-sm"
+                          disabled={!isEditable}
+                          className={`w-10 text-center border rounded ml-2 text-sm ${!isEditable ? 'bg-gray-200 cursor-not-allowed' : ''}`}
                           placeholder="0"
                           maxLength={2}
                         />
