@@ -1,40 +1,25 @@
 'use client';
 
 import { useChampionshipStore } from '../store';
-import TeamSetup from '../components/TeamSetup';
 import GroupsPhase from '../components/GroupsPhase';
-import PlayInPhase from '../components/PlayInPhase';
 import KnockoutPhase from '../components/KnockoutPhase';
 
 export default function Home() {
-  const { status, mode, setMode, newChampionship } = useChampionshipStore();
+  const { status, groups, generateChampionship, generateKnockoutPhase, newChampionship } = useChampionshipStore();
+
+  // Inicializar grupos na primeira renderização
+  if (groups.length === 0) {
+    generateChampionship();
+  }
 
   const renderContent = () => {
     switch (status) {
-      case 'SETUP':
-        return <TeamSetup />;
       case 'GROUPS':
         return <GroupsPhase />;
-      case 'PLAY_IN':
-        return (
-          <div className="space-y-8">
-            <GroupsPhase />
-            <div className="border-t-2 border-[#d8af43]/30 pt-8">
-              <h2 className="text-3xl font-bold text-center mb-6 text-[#d8af43]">Repescagem</h2>
-              <PlayInPhase />
-            </div>
-          </div>
-        );
       case 'KNOCKOUT':
         return (
           <div className="space-y-8">
             <GroupsPhase />
-            {mode === 'REPECHAGE' && (
-              <div className="border-t-2 border-[#d8af43]/30 pt-8">
-                <h2 className="text-3xl font-bold text-center mb-6 text-[#d8af43]">Repescagem</h2>
-                <PlayInPhase />
-              </div>
-            )}
             <div className="border-t-2 border-[#d8af43]/30 pt-8">
               <h2 className="text-3xl font-bold text-center mb-6 text-[#d8af43]">Mata-Mata</h2>
               <KnockoutPhase />
@@ -45,12 +30,6 @@ export default function Home() {
         return (
           <div className="space-y-8">
             <GroupsPhase />
-            {mode === 'REPECHAGE' && (
-              <div className="border-t-2 border-[#d8af43]/30 pt-8">
-                <h2 className="text-3xl font-bold text-center mb-6 text-[#d8af43]">Repescagem</h2>
-                <PlayInPhase />
-              </div>
-            )}
             <div className="border-t-2 border-[#d8af43]/30 pt-8">
               <h2 className="text-3xl font-bold text-center mb-6 text-[#d8af43]">Mata-Mata</h2>
               <KnockoutPhase />
@@ -58,7 +37,7 @@ export default function Home() {
           </div>
         );
       default:
-        return <TeamSetup />;
+        return <GroupsPhase />;
     }
   };
 
@@ -75,40 +54,20 @@ export default function Home() {
             </p>
           </div>
           <div className="flex flex-wrap gap-4">
-            {status === 'SETUP' && (
-              <div className="flex items-center gap-4">
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="mode"
-                    value="SIMPLE"
-                    checked={mode === 'SIMPLE'}
-                    onChange={(e) => setMode(e.target.value as 'SIMPLE' | 'REPECHAGE')}
-                    className="w-4 h-4 text-[#d8af43]"
-                  />
-                  <span className="text-white/80">Modo Simples</span>
-                </label>
-                <label className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name="mode"
-                    value="REPECHAGE"
-                    checked={mode === 'REPECHAGE'}
-                    onChange={(e) => setMode(e.target.value as 'SIMPLE' | 'REPECHAGE')}
-                    className="w-4 h-4 text-[#d8af43]"
-                  />
-                  <span className="text-white/80">Modo com Repescagem</span>
-                </label>
-              </div>
-            )}
-            {status !== 'SETUP' && (
+            {status === 'GROUPS' && (
               <button
-                onClick={newChampionship}
-                className="px-4 py-2 bg-[#d8af43] text-black rounded hover:bg-[#c29f3d] transition-colors"
+                onClick={generateKnockoutPhase}
+                className="bg-[#d8af43] text-black px-6 py-3 rounded font-bold hover:bg-[#c29f3d] transition-colors"
               >
-                Novo Campeonato
+                🏆 Gerar Mata-Mata
               </button>
             )}
+            <button
+              onClick={newChampionship}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+            >
+              Resetar
+            </button>
           </div>
         </div>
 

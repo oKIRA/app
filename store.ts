@@ -63,6 +63,7 @@ interface ChampionshipState {
   editTeam: (index: number, newName: string) => void;
   setMode: (mode: 'SIMPLE' | 'REPECHAGE') => void;
   generateChampionship: () => void;
+  generateKnockoutPhase: () => void;
   updateMatchResult: (matchId: string, homeGoals: number, awayGoals: number) => void;
   updatePlayInResult: (matchId: string, homeGoals: number, awayGoals: number, penalties?: { home: number; away: number }) => void;
   updateKnockoutResult: (matchId: string, homeGoals: number, awayGoals: number, penalties?: { home: number; away: number }) => void;
@@ -100,6 +101,84 @@ const generateGroups = (teams: string[]): Group[] => {
       standings: calculateStandings(matches, groupTeams),
     });
   }
+
+  return groups;
+};
+
+// Gerar grupos pré-definidos com os times do sorteio
+const generatePredefinedGroups = (): Group[] => {
+  const groupsData = [
+    {
+      name: 'Grupo A',
+      teams: [
+        'Luan (Flamengo)',
+        'Mauricio / Michel (Boca Juniors)',
+        'Gustavo (Fluminense)',
+        'Betinho (Internacional)',
+        'Leo (Argentinos Juniors)',
+        'Luis Alberto (Peñarol)',
+      ],
+    },
+    {
+      name: 'Grupo B',
+      teams: [
+        'Pedro (Grêmio)',
+        'Joseph (Palmeiras)',
+        'Moisés Alkmim (Fortaleza)',
+        'Davi (Vélez)',
+        'Michel Igreja (Botafogo)',
+        'Soneca irmão do Marcelo (Estudiantes)',
+      ],
+    },
+    {
+      name: 'Grupo C',
+      teams: [
+        'João Vitor (São Paulo)',
+        'Zeck (Cruzeiro)',
+        'Isac (Bahia)',
+        'Stocco (Atlético Mineiro)',
+        'Gabriel (Racing)',
+        'Mikelle (Vasco)',
+      ],
+    },
+    {
+      name: 'Grupo D',
+      teams: [
+        'João (Lanus)',
+        'Marcelo (Atlético Nacional)',
+        'Akira (River Plate)',
+        'liu (Corinthians)',
+        'Pedrão (Rosario Central)',
+        'Rafael (Independente)',
+      ],
+    },
+  ];
+
+  const groups: Group[] = [];
+
+  groupsData.forEach((groupData, groupIndex) => {
+    const groupName = String.fromCharCode(65 + groupIndex); // A, B, C, D
+    const matches: Match[] = [];
+
+    // Round-robin: each plays each other once
+    for (let j = 0; j < groupData.teams.length; j++) {
+      for (let k = j + 1; k < groupData.teams.length; k++) {
+        matches.push({
+          id: `${groupName}-${j}-${k}`,
+          group: groupName,
+          home: groupData.teams[j],
+          away: groupData.teams[k],
+        });
+      }
+    }
+
+    groups.push({
+      name: groupData.name,
+      teams: groupData.teams,
+      matches,
+      standings: calculateStandings(matches, groupData.teams),
+    });
+  });
 
   return groups;
 };
@@ -187,61 +266,97 @@ const calculateStandings = (matches: Match[], teams?: string[]): Standing[] => {
 };
 
 const generateKnockout = (groups: Group[]): KnockoutMatch[] => {
-  // Extrair 1º e 2º de cada grupo com informação de posição
-  const qualifiedByGroup: Array<{ position: 1 | 2; team: string; groupName: string }> = [];
+  // Extrair 4 primeiros de cada grupo
+  const qualifiedByGroup: Array<{ position: number; team: string; groupLetter: string }> = [];
   
-  groups.forEach(group => {
-    const sorted = group.standings.slice(0, 2);
+  groups.forEach((group, groupIndex) => {
+    const sorted = group.standings.slice(0, 4);
+    const groupLetter = String.fromCharCode(65 + groupIndex); // A, B, C, D
     sorted.forEach((standing, index) => {
       qualifiedByGroup.push({
-        position: (index + 1) as 1 | 2,
+        position: index + 1,
         team: standing.team,
-        groupName: group.name,
+        groupLetter: groupLetter,
       });
     });
   });
 
-  const totalTeams = qualifiedByGroup.length;
-  
-  // Determinar fases baseado no número de seleids
-  let phases: string[] = [];
-  if (totalTeams === 4) {
-    phases = ['Semifinal', 'Final'];
-  } else if (totalTeams === 8) {
-    phases = ['Quartas', 'Semifinal', 'Final'];
-  } else if (totalTeams === 16) {
-    phases = ['Oitavas', 'Quartas', 'Semifinal', 'Final'];
-  } else {
+  // Verificar se temos exatamente 16 times
+  if (qualifiedByGroup.length !== 16) {
     return [];
   }
 
-  // Organizar chaveamento: 1º de grupo A vs 2º de grupo B, etc.
-  const firstPlaces = qualifiedByGroup.filter(q => q.position === 1);
-  const secondPlaces = qualifiedByGroup.filter(q => q.position === 2);
+  // Agrupar times por posição e grupo
+  const positions: { [key: number]: Map<string, string> } = {
+    1: new Map(),
+    2: new Map(),
+    3: new Map(),
+    4: new Map(),
+  };
 
+  qualifiedByGroup.forEach(q => {
+    positions[q.position].set(q.groupLetter, q.team);
+  });
+
+  // Cruzamento justo para oitavas: 1ºA vs 4ºB, 2ºA vs 3ºB, etc.
   const pairings: Array<{ home: string; away: string }> = [];
   
-  // Criar chaveamento: 1º de um grupo vs 2º de outro grupo com rotação
-  for (let i = 0; i < firstPlaces.length; i++) {
-    const first = firstPlaces[i];
-    const secondIndex = (i + 1) % secondPlaces.length;
-    const second = secondPlaces[secondIndex];
-    
-    pairings.push({
-      home: first.team,
-      away: second.team,
-    });
-  }
+  // 1º A vs 4º B
+  pairings.push({
+    home: positions[1].get('A')!,
+    away: positions[4].get('B')!,
+  });
+  
+  // 2º A vs 3º B
+  pairings.push({
+    home: positions[2].get('A')!,
+    away: positions[3].get('B')!,
+  });
+  
+  // 1º B vs 4º A
+  pairings.push({
+    home: positions[1].get('B')!,
+    away: positions[4].get('A')!,
+  });
+  
+  // 2º B vs 3º A
+  pairings.push({
+    home: positions[2].get('B')!,
+    away: positions[3].get('A')!,
+  });
+  
+  // 1º C vs 4º D
+  pairings.push({
+    home: positions[1].get('C')!,
+    away: positions[4].get('D')!,
+  });
+  
+  // 2º C vs 3º D
+  pairings.push({
+    home: positions[2].get('C')!,
+    away: positions[3].get('D')!,
+  });
+  
+  // 1º D vs 4º C
+  pairings.push({
+    home: positions[1].get('D')!,
+    away: positions[4].get('C')!,
+  });
+  
+  // 2º D vs 3º C
+  pairings.push({
+    home: positions[2].get('D')!,
+    away: positions[3].get('C')!,
+  });
 
-  // Gerar matches para todas as fases
+  const phases = ['Oitavas', 'Quartas', 'Semifinal', 'Final'];
   const matches: KnockoutMatch[] = [];
   
-  // Primeira fase com os pairings
-  const firstPhase = phases[0];
+  // Primeira fase (Oitavas) com os pairings
   pairings.forEach((pairing, index) => {
     matches.push({
-      id: `${firstPhase}-${index}`,
-      round: firstPhase,
+      id: `Oitavas-${index}`,
+      round: 'Oitavas',
       home: pairing.home,
       away: pairing.away,
     });
@@ -348,7 +463,7 @@ export const useChampionshipStore = create<ChampionshipState>()(
       playInMatches: [],
       knockoutMatches: [],
       mode: 'SIMPLE',
-      status: 'SETUP',
+      status: 'GROUPS',
 
       addTeam: (team) => set((state) => ({ teams: [...state.teams, team] })),
 
@@ -363,12 +478,21 @@ export const useChampionshipStore = create<ChampionshipState>()(
       setMode: (mode) => set({ mode }),
 
       generateChampionship: () => {
-        const { teams, mode } = get();
-        if (teams.length < 4) return;
-        const groups = generateGroups(teams);
+        const groups = generatePredefinedGroups();
         set({
           groups,
           status: 'GROUPS'
+        });
+      },
+
+      generateKnockoutPhase: () => {
+        const { groups } = get();
+        if (groups.length === 0) return;
+        
+        const knockoutMatches = generateKnockout(groups);
+        set({
+          knockoutMatches,
+          status: 'KNOCKOUT'
         });
       },
 
@@ -386,30 +510,8 @@ export const useChampionshipStore = create<ChampionshipState>()(
           standings: calculateStandings(group.matches, group.teams),
         }));
 
-        // Check if all matches are played
-        const allPlayed = updatedGroups.every(group =>
-          group.matches.every(match => match.homeGoals !== undefined && match.awayGoals !== undefined)
-        );
-
-        let newStatus = state.status;
-        let newPlayInMatches = state.playInMatches;
-        let newKnockoutMatches = state.knockoutMatches;
-
-        if (allPlayed && state.status === 'GROUPS') {
-          if (state.mode === 'REPECHAGE') {
-            newPlayInMatches = generatePlayIn(updatedGroups);
-            newStatus = 'PLAY_IN';
-          } else {
-            newKnockoutMatches = generateKnockout(updatedGroups);
-            newStatus = 'KNOCKOUT';
-          }
-        }
-
         return {
           groups: updatedGroups,
-          playInMatches: newPlayInMatches,
-          knockoutMatches: newKnockoutMatches,
-          status: newStatus
         };
       }),
 

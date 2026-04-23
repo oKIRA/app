@@ -17,14 +17,9 @@ export default function GroupsPhase() {
   };
 
   const getStandingClass = (index: number, totalTeams: number, mode: 'SIMPLE' | 'REPECHAGE') => {
-    if (mode === 'REPECHAGE') {
-      if (index === 0) return 'bg-green-900/40 text-green-200 font-semibold border-l-4 border-green-500'; // 1º lugar - classificado direto
-      if (index === 1 || index === 2) return 'bg-yellow-900/40 text-yellow-200 font-semibold border-l-4 border-yellow-500'; // 2º e 3º - repescagem
-      return 'bg-red-900/40 text-red-200 border-l-4 border-red-500'; // restantes - eliminados
-    } else {
-      if (index < 2) return 'bg-green-900/40 text-green-200 font-semibold border-l-4 border-green-500'; // 2 primeiros - classificados
-      return 'bg-red-900/40 text-red-200 border-l-4 border-red-500'; // restantes - eliminados
-    }
+    // Qualificar os 4 primeiros de cada grupo
+    if (index < 4) return 'bg-green-900/40 text-green-200 font-semibold border-l-4 border-green-500'; // 4 primeiros - classificados
+    return 'bg-red-900/40 text-red-200 border-l-4 border-red-500'; // restantes - eliminados
   };
 
   const isEditable = status === 'GROUPS';
@@ -49,15 +44,15 @@ export default function GroupsPhase() {
       {/* Seção de Jogos */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold mb-3 text-[#d8af43]">Jogos</h2>
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
           {groups.map((group) => (
-            <div key={`games-${group.name}`} className="libertadores-card p-6 rounded-lg shadow-md">
-              <h3 className="text-lg font-bold mb-4 text-center bg-black/30 py-2 rounded text-[#d8af43]">{group.name}</h3>
-              <div className="space-y-3">
+            <div key={`games-${group.name}`} className="libertadores-card p-4 rounded-lg shadow-md">
+              <h3 className="text-lg font-bold mb-3 text-center bg-black/30 py-2 rounded text-[#d8af43]">{group.name}</h3>
+              <div className="space-y-2">
                 {group.matches.map((match) => (
-                  <div key={match.id} className="bg-white/5 p-3 rounded border border-white/10">
-                    <div className="flex items-center justify-between">
-                      <span className="flex-1 font-medium text-sm truncate pr-2" title={match.home}>
+                  <div key={match.id} className="bg-white/5 p-2 rounded border border-white/10">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="flex-1 font-medium text-xs md:text-sm truncate pr-1" title={match.home}>
                         {match.home}
                       </span>
                       <input
@@ -67,12 +62,12 @@ export default function GroupsPhase() {
                           const numericValue = handleNumericInput(e.target.value);
                           handleResultChange(match.id, numericValue, match.awayGoals?.toString() ?? '');
                         }}
-                        className="w-12 text-center border border-white/10 rounded bg-[#0f0f0f] text-white text-sm font-bold"
+                        className="w-10 text-center border border-white/10 rounded bg-[#0f0f0f] text-white text-xs md:text-sm font-bold"
                         placeholder="0"
                         maxLength={2}
                         disabled={!isEditable}
                       />
-                      <span className="mx-2 text-gray-600 font-bold">vs</span>
+                      <span className="mx-1 text-gray-600 font-bold text-xs">vs</span>
                       <input
                         type="text"
                         value={match.awayGoals ?? ''}
@@ -80,12 +75,12 @@ export default function GroupsPhase() {
                           const numericValue = handleNumericInput(e.target.value);
                           handleResultChange(match.id, match.homeGoals?.toString() ?? '', numericValue);
                         }}
-                        className="w-12 text-center border border-white/10 rounded bg-[#0f0f0f] text-white text-sm font-bold"
+                        className="w-10 text-center border border-white/10 rounded bg-[#0f0f0f] text-white text-xs md:text-sm font-bold"
                         placeholder="0"
                         maxLength={2}
                         disabled={!isEditable}
                       />
-                      <span className="flex-1 text-right font-medium text-sm truncate pl-2" title={match.away}>
+                      <span className="flex-1 text-right font-medium text-xs md:text-sm truncate pl-1" title={match.away}>
                         {match.away}
                       </span>
                     </div>
