@@ -1,16 +1,19 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useChampionshipStore } from '../store';
 import GroupsPhase from '../components/GroupsPhase';
 import KnockoutPhase from '../components/KnockoutPhase';
 
 export default function Home() {
-  const { status, groups, generateChampionship, generateKnockoutPhase, newChampionship } = useChampionshipStore();
+  const { status, groups, initialized, generateChampionship, generateKnockoutPhase, newChampionship } = useChampionshipStore();
 
-  // Inicializar grupos na primeira renderização
-  if (groups.length === 0) {
-    generateChampionship();
-  }
+  // Inicializar grupos apenas uma vez
+  useEffect(() => {
+    if (!initialized && groups.length === 0) {
+      generateChampionship();
+    }
+  }, [initialized, groups.length, generateChampionship]);
 
   const renderContent = () => {
     switch (status) {

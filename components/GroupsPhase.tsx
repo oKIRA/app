@@ -30,7 +30,7 @@ export default function GroupsPhase() {
         <div className="flex flex-wrap gap-3">
           <button
             onClick={saveChampionship}
-            className="bg-[#d8af43] text-black px-4 py-2 rounded hover:bg-[#c29f3d]"
+            className="hidden bg-[#d8af43] text-black px-4 py-2 rounded hover:bg-[#c29f3d]"
           >
             Salvar Resultado
           </button>
@@ -95,7 +95,7 @@ export default function GroupsPhase() {
       {/* Seção de Classificação */}
       <div>
         <h2 className="text-2xl font-bold mb-4 text-[#d8af43]">Classificação</h2>
-        <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+        <div className="grid gap-2 grid-cols-1 md:grid-cols-2 lg:grid-cols-2">
           {groups.map((group) => (
             <div key={`standings-${group.name}`} className="libertadores-card p-4 rounded-lg shadow-md">
               <h3 className="text-lg font-bold mb-4 text-center bg-black/30 py-2 rounded text-[#d8af43]">{group.name}</h3>

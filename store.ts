@@ -58,6 +58,7 @@ interface ChampionshipState {
   mode: 'SIMPLE' | 'REPECHAGE';
   status: 'SETUP' | 'GROUPS' | 'PLAY_IN' | 'KNOCKOUT' | 'FINISHED';
   lastSavedAt?: string;
+  initialized: boolean;
   addTeam: (team: string) => void;
   removeTeam: (index: number) => void;
   editTeam: (index: number, newName: string) => void;
@@ -112,9 +113,9 @@ const generatePredefinedGroups = (): Group[] => {
       name: 'Grupo A',
       teams: [
         'Luan (Flamengo)',
-        'Mauricio / Michel (Boca Juniors)',
+        'Mauricio (Boca Juniors)',
         'Gustavo (Fluminense)',
-        'Betinho (Internacional)',
+        'Betinho (Santos)',
         'Leo (Argentinos Juniors)',
         'Luis Alberto (Peñarol)',
       ],
@@ -124,10 +125,10 @@ const generatePredefinedGroups = (): Group[] => {
       teams: [
         'Pedro (Grêmio)',
         'Joseph (Palmeiras)',
-        'Moisés Alkmim (Fortaleza)',
+        'Moisés Alkmim (Red Bull Bragantino)',
         'Davi (Vélez)',
         'Michel Igreja (Botafogo)',
-        'Soneca irmão do Marcelo (Estudiantes)',
+        'Vinícius (Estudiantes)',
       ],
     },
     {
@@ -464,6 +465,7 @@ export const useChampionshipStore = create<ChampionshipState>()(
       knockoutMatches: [],
       mode: 'SIMPLE',
       status: 'GROUPS',
+      initialized: false,
 
       addTeam: (team) => set((state) => ({ teams: [...state.teams, team] })),
 
@@ -481,7 +483,8 @@ export const useChampionshipStore = create<ChampionshipState>()(
         const groups = generatePredefinedGroups();
         set({
           groups,
-          status: 'GROUPS'
+          status: 'GROUPS',
+          initialized: true
         });
       },
 
